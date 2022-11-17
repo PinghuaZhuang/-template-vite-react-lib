@@ -1,1 +1,1 @@
-export { default } from './Wrapper';
+export default () => <div>lib demo</div>;

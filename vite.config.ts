@@ -1,11 +1,17 @@
 import { defineConfig } from 'vite';
 import { AntdResolve, createStyleImportPlugin } from 'vite-plugin-style-import';
+import lodash from 'lodash';
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import legacy from '@vitejs/plugin-legacy';
-import typescript from '@rollup/plugin-typescript';
+import dts from 'vite-plugin-dts';
+import pkg from './package.json';
+
+const { upperFirst, camelCase } = lodash;
 
 const isDev = process.env.VITE_ENV === 'dev';
+
+const pkgName = upperFirst(camelCase(pkg.name.replace(/^.*?([\w-]+)$/, '$1')));
 
 function resolve(url: string) {
   return path.resolve(__dirname, url);
@@ -13,7 +19,6 @@ function resolve(url: string) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: isDev ? resolve('./demo') : process.cwd(),
   base: './',
   envPrefix: 'APP_',
   server: {
@@ -24,38 +29,27 @@ export default defineConfig({
     lib: isDev
       ? undefined
       : {
-          entry: resolve('./src'),
-          name: 'PermissionTable',
-          formats: ['es', 'umd'],
-        },
+        entry: resolve('./src'),
+        name: pkgName,
+        formats: ['es', 'umd'],
+        fileName: (format) => `index.${format}.js`,
+      },
     rollupOptions: isDev
       ? {}
       : {
-          external: ['react', 'react-dom', 'antd'],
-          output: {
-            globals: {
-              react: 'react',
-              antd: 'antd',
-              'react-dom': 'react-dom',
-            },
+        external: ['react', 'react-dom', 'antd'],
+        output: {
+          globals: {
+            react: 'react',
+            antd: 'antd',
+            'react-dom': 'react-dom',
           },
-          plugins: [
-            typescript({
-              target: 'es2015',
-              rootDir: resolve('./src'),
-              declaration: true,
-              declarationDir: resolve('./lib'),
-              exclude: resolve('node_modules/**'),
-              tsconfig: resolve('./tsconfig.json'),
-            }),
-          ],
         },
+      },
   },
   resolve: {
     alias: {
       '@': resolve('./demo'),
-      '@is': resolve('./demo/utils/is'),
-      '@src': resolve('./src'),
     },
   },
   css: {
@@ -67,11 +61,11 @@ export default defineConfig({
   },
   plugins: isDev
     ? [
-        legacy(),
-        react(),
-        createStyleImportPlugin({
-          resolves: [AntdResolve()],
-        }),
-      ]
-    : [],
+      legacy(),
+      react(),
+      createStyleImportPlugin({
+        resolves: [AntdResolve()],
+      }),
+    ]
+    : [react(), dts()],
 });
